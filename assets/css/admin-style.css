@@ -1,0 +1,657 @@
+/**
+ * Estilos del Panel de Control de WebP Native Converter
+ *
+ * @package WebPNativeConverter
+ */
+
+:root {
+	--webp-nc-primary: #2563eb;
+	--webp-nc-primary-hover: #1d4ed8;
+	--webp-nc-success: #10b981;
+	--webp-nc-warning: #f59e0b;
+	--webp-nc-danger: #ef4444;
+	--webp-nc-dark: #0f172a;
+	--webp-nc-slate: #64748b;
+	--webp-nc-bg-card: #ffffff;
+	--webp-nc-border: #e2e8f0;
+	--webp-nc-radius: 10px;
+	--webp-nc-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.webp-nc-dashboard {
+	max-width: 1240px;
+	margin: 20px 20px 40px 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* Header */
+.webp-nc-header {
+	margin-bottom: 24px;
+}
+
+.webp-nc-title-area {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.webp-nc-title-area h1 {
+	margin: 0;
+	font-size: 26px;
+	font-weight: 700;
+	color: #0f172a;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.webp-nc-title-area h1 .dashicons {
+	font-size: 28px;
+	width: 28px;
+	height: 28px;
+	color: var(--webp-nc-primary);
+}
+
+.webp-nc-version-badge {
+	background: #e2e8f0;
+	color: #475569;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 3px 8px;
+	border-radius: 6px;
+}
+
+.webp-nc-free-badge {
+	background: #ecfdf5;
+	color: #059669;
+	border: 1px solid #a7f3d0;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 3px 10px;
+	border-radius: 20px;
+}
+
+.webp-nc-subtitle {
+	color: #64748b;
+	font-size: 14px;
+	margin: 6px 0 0 0;
+}
+
+/* Stats Cards Grid */
+.webp-nc-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 16px;
+	margin-bottom: 24px;
+}
+
+.webp-nc-stat-card {
+	background: var(--webp-nc-bg-card);
+	border: 1px solid var(--webp-nc-border);
+	border-radius: var(--webp-nc-radius);
+	padding: 18px 20px;
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	box-shadow: var(--webp-nc-shadow);
+	transition: transform 0.15s ease;
+}
+
+.webp-nc-stat-card:hover {
+	transform: translateY(-2px);
+}
+
+.webp-nc-stat-icon {
+	width: 46px;
+	height: 46px;
+	border-radius: 10px;
+	background: #eff6ff;
+	color: var(--webp-nc-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 24px;
+	flex-shrink: 0;
+}
+
+.webp-nc-stat-value {
+	display: block;
+	font-size: 22px;
+	font-weight: 700;
+	color: #0f172a;
+	line-height: 1.2;
+}
+
+.webp-nc-stat-label {
+	display: block;
+	font-size: 13px;
+	color: #64748b;
+	margin-top: 2px;
+}
+
+/* Main Layout: Two Columns */
+.webp-nc-main-layout {
+	display: grid;
+	grid-template-columns: 2fr 1.1fr;
+	gap: 24px;
+}
+
+@media (max-width: 960px) {
+	.webp-nc-main-layout {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Generic Card */
+.webp-nc-card {
+	background: var(--webp-nc-bg-card);
+	border: 1px solid var(--webp-nc-border);
+	border-radius: var(--webp-nc-radius);
+	padding: 22px;
+	margin-bottom: 24px;
+	box-shadow: var(--webp-nc-shadow);
+}
+
+.webp-nc-card h3 {
+	margin: 0 0 14px 0;
+	font-size: 17px;
+	font-weight: 600;
+	color: #0f172a;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.webp-nc-card h3 .dashicons {
+	color: var(--webp-nc-primary);
+}
+
+/* Backup Warning Card */
+.webp-nc-warning-card {
+	border-left: 4px solid var(--webp-nc-warning);
+	background: #fffdfa;
+}
+
+.webp-nc-alert-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.webp-nc-alert-header .dashicons {
+	color: var(--webp-nc-warning);
+	font-size: 24px;
+	width: 24px;
+	height: 24px;
+}
+
+.webp-nc-alert-header h3 {
+	margin: 0;
+	color: #92400e;
+}
+
+.webp-nc-warning-card p {
+	color: #78350f;
+	margin: 0 0 12px 0;
+	font-size: 13.5px;
+	line-height: 1.5;
+}
+
+.webp-nc-backup-checkbox {
+	background: #fef3c7;
+	padding: 10px 14px;
+	border-radius: 6px;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	border: 1px solid #fde68a;
+}
+
+.webp-nc-backup-checkbox input[type="checkbox"] {
+	margin: 0;
+}
+
+/* Batch Processing */
+.webp-nc-batch-controls {
+	margin: 18px 0;
+	display: flex;
+	gap: 12px;
+}
+
+.button-hero#btn-start-batch {
+	background: var(--webp-nc-primary);
+	border-color: var(--webp-nc-primary);
+	color: #fff;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	padding: 8px 20px;
+	height: auto;
+}
+
+.button-hero#btn-start-batch:hover {
+	background: var(--webp-nc-primary-hover);
+}
+
+/* Progress Bar */
+.webp-nc-progress-wrapper {
+	margin: 20px 0;
+}
+
+.webp-nc-progress-bar-container {
+	width: 100%;
+	height: 16px;
+	background: #e2e8f0;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.webp-nc-progress-bar {
+	height: 100%;
+	background: linear-gradient(90deg, #2563eb, #10b981);
+	border-radius: 8px;
+	transition: width 0.3s ease;
+}
+
+.webp-nc-progress-status {
+	display: flex;
+	justify-content: space-between;
+	font-size: 13px;
+	font-weight: 600;
+	color: #475569;
+	margin-top: 8px;
+}
+
+/* Console / Log Viewer */
+.webp-nc-console-wrapper {
+	margin-top: 16px;
+}
+
+.webp-nc-console-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.webp-nc-console {
+	background: #0f172a;
+	color: #f8fafc;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 12.5px;
+	padding: 14px;
+	border-radius: 8px;
+	height: 150px;
+	overflow-y: auto;
+	line-height: 1.6;
+}
+
+.webp-nc-console-line {
+	margin-bottom: 4px;
+}
+
+.webp-nc-console-line.text-muted {
+	color: #64748b;
+}
+
+.webp-nc-console-line.log-success {
+	color: #34d399;
+}
+
+.webp-nc-console-line.log-error {
+	color: #f87171;
+}
+
+/* Preview Split-Screen Slider */
+.webp-nc-slider-container {
+	position: relative;
+	width: 100%;
+	height: 240px;
+	border-radius: 8px;
+	overflow: hidden;
+	user-select: none;
+	background: #e2e8f0;
+}
+
+.webp-nc-slider-image {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.webp-nc-image-before {
+	width: 50%;
+	overflow: hidden;
+	z-index: 2;
+	border-right: 2px solid #ffffff;
+}
+
+.webp-nc-demo-visual {
+	width: 100%;
+	height: 100%;
+	min-width: 500px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.webp-nc-demo-orig {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.webp-nc-demo-webp {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.webp-nc-badge-tag {
+	position: absolute;
+	bottom: 12px;
+	padding: 5px 12px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.tag-orig {
+	left: 12px;
+	background: rgba(15, 23, 42, 0.85);
+}
+
+.tag-webp {
+	right: 12px;
+	background: rgba(16, 185, 129, 0.9);
+}
+
+.webp-nc-slider-handle {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 36px;
+	height: 36px;
+	background: #ffffff;
+	border-radius: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 10;
+	cursor: ew-resize;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+	color: #334155;
+}
+
+/* Sidebar Settings Form */
+.webp-nc-field-group {
+	margin-bottom: 16px;
+}
+
+.webp-nc-range {
+	width: 100%;
+	margin: 8px 0;
+}
+
+.badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.badge-success {
+	background: #d1fae5;
+	color: #065f46;
+}
+
+.badge-danger {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.badge-secondary {
+	background: #f1f5f9;
+	color: #475569;
+}
+
+/* Server Status List */
+.webp-nc-sysinfo-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.webp-nc-sysinfo-list li {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px 0;
+	border-bottom: 1px solid #f1f5f9;
+	font-size: 13px;
+}
+
+.webp-nc-sysinfo-list li:last-child {
+	border-bottom: none;
+}
+
+/* Author Attribution Card */
+.webp-nc-author-card {
+	text-align: center;
+	background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.webp-nc-author-avatar {
+	width: 44px;
+	height: 44px;
+	margin: 0 auto 10px auto;
+	background: #fef2f2;
+	color: #ef4444;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 22px;
+}
+
+.webp-nc-author-card h4 {
+	margin: 0;
+	font-size: 12px;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.webp-nc-author-name {
+	font-size: 16px;
+	font-weight: 700;
+	color: #0f172a;
+	margin: 4px 0 6px 0;
+}
+
+.webp-nc-author-desc {
+	font-size: 12.5px;
+	color: #64748b;
+	margin: 0 0 16px 0;
+	line-height: 1.4;
+}
+
+.webp-nc-author-links {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+}
+
+/* Media Library Column Styling */
+.column-webp_nc_status {
+	width: 140px;
+}
+
+.webp-nc-col-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 11px;
+	margin-bottom: 4px;
+}
+
+.webp-nc-badge-success {
+	background: #d1fae5;
+	color: #065f46;
+}
+
+.webp-nc-badge-pending {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.webp-nc-col-details {
+	font-size: 11px;
+	color: #64748b;
+}
+
+.webp-nc-saving-tag {
+	color: #059669;
+	font-weight: 600;
+}
+
+.webp-nc-quick-convert {
+	margin-top: 4px !important;
+}
+
+/* Unused media scanner */
+.webp-nc-unused-disclaimer {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	background: #fff7ed;
+	border: 1px solid #fed7aa;
+	border-radius: 8px;
+	padding: 12px 14px;
+	margin: 0 0 16px 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: #9a3412;
+}
+
+.webp-nc-unused-disclaimer .dashicons {
+	color: #ea580c;
+	margin-top: 2px;
+}
+
+.webp-nc-unused-card .webp-nc-batch-controls .dashicons {
+	margin-top: 3px;
+}
+
+.webp-nc-unused-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 12px 0 8px 0;
+	font-size: 13px;
+}
+
+.webp-nc-unused-table-wrap.has-results {
+	max-height: 420px;
+	overflow: auto;
+	border: 1px solid var(--webp-nc-border);
+	border-radius: 8px;
+}
+
+.webp-nc-unused-table {
+	border: none !important;
+	margin: 0;
+}
+
+.webp-nc-unused-table td,
+.webp-nc-unused-table th {
+	vertical-align: middle;
+}
+
+.webp-nc-unused-thumb {
+	width: 48px;
+	height: 48px;
+	object-fit: cover;
+	border-radius: 6px;
+	background: #f1f5f9;
+	display: inline-block;
+	margin-right: 10px;
+	vertical-align: middle;
+}
+
+.webp-nc-unused-thumb-empty {
+	width: 48px;
+	height: 48px;
+	line-height: 48px;
+	text-align: center;
+	color: #94a3b8;
+	font-size: 22px;
+}
+
+.webp-nc-unused-divider {
+	margin: 22px 0 16px 0;
+	border: none;
+	border-top: 1px solid #e2e8f0;
+}
+
+.webp-nc-quarantine-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.webp-nc-quarantine-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 12px;
+	border: 1px solid var(--webp-nc-border);
+	border-radius: 8px;
+	background: #f8fafc;
+}
+
+.webp-nc-quarantine-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.webp-nc-quarantine-actions {
+	display: flex;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
+.webp-nc-quarantine-actions .btn-quarantine-purge {
+	color: #b91c1c;
+	border-color: #fecaca;
+}
+
+#unused-results-table p.description,
+#unused-empty-hint {
+	margin: 12px;
+}
+
+@media (max-width: 640px) {
+	.webp-nc-quarantine-row {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
