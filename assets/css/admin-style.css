@@ -632,6 +632,18 @@
 	gap: 8px;
 }
 
+.webp-nc-quarantine-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0 0 12px 0;
+}
+
+.webp-nc-quarantine-toolbar #btn-quarantine-purge-all {
+	color: #b91c1c;
+	border-color: #fecaca;
+}
+
 .webp-nc-quarantine-row {
 	display: flex;
 	align-items: center;

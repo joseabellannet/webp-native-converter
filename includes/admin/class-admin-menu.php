@@ -165,10 +165,16 @@ class AdminMenu {
 					'confirmQuarantine' => __( 'Las imágenes seleccionadas se moverán a una carpeta temporal (cuarentena). Podrás restaurarlas después. ¿Continuar?', 'webp-native-converter' ),
 					'confirmRestore'    => __( '¿Restaurar esta imagen a la biblioteca de medios?', 'webp-native-converter' ),
 					'confirmPurge'      => __( 'Esta acción borra la imagen de forma PERMANENTE (archivos y registro). No se puede deshacer. ¿Continuar?', 'webp-native-converter' ),
+					'confirmRestoreAll' => __( '¿Restaurar las %d imágenes de cuarentena a la biblioteca?', 'webp-native-converter' ),
+					'confirmPurgeAll'   => __( 'Esta acción borra PERMANENTEMENTE las %d imágenes de cuarentena (archivos y registro). No se puede deshacer. ¿Continuar?', 'webp-native-converter' ),
 					'moving'            => __( 'Moviendo a cuarentena…', 'webp-native-converter' ),
+					'restoringAll'      => __( 'Restaurando…', 'webp-native-converter' ),
+					'purgingAll'        => __( 'Eliminando…', 'webp-native-converter' ),
 					'emptyQuarantine'   => __( 'La cuarentena está vacía.', 'webp-native-converter' ),
 					'restore'           => __( 'Restaurar', 'webp-native-converter' ),
 					'purge'             => __( 'Eliminar definitivo', 'webp-native-converter' ),
+					'restoreAll'        => __( 'Restaurar todas', 'webp-native-converter' ),
+					'purgeAll'          => __( 'Eliminar todas', 'webp-native-converter' ),
 					'selectedCount'     => __( '%d seleccionadas', 'webp-native-converter' ),
 					'foundCount'        => __( '%d candidatas a no usadas', 'webp-native-converter' ),
 				),
@@ -422,6 +428,14 @@ class AdminMenu {
 						<p class="description">
 							<?php esc_html_e( 'Archivos movidos fuera de la biblioteca. Restaurar los devuelve a su ruta original. Eliminar borra disco y registro.', 'webp-native-converter' ); ?>
 						</p>
+						<div class="webp-nc-quarantine-toolbar" id="quarantine-toolbar">
+							<button type="button" class="button" id="btn-quarantine-restore-all" disabled>
+								<?php esc_html_e( 'Restaurar todas', 'webp-native-converter' ); ?>
+							</button>
+							<button type="button" class="button" id="btn-quarantine-purge-all" disabled>
+								<?php esc_html_e( 'Eliminar todas', 'webp-native-converter' ); ?>
+							</button>
+						</div>
 						<div id="quarantine-list" class="webp-nc-quarantine-list"></div>
 					</div>
 

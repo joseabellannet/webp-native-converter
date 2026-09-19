@@ -28,11 +28,16 @@
 		const $tbody          = $table.find('tbody');
 		const $emptyHint      = $('#unused-empty-hint');
 		const $quarantineList = $('#quarantine-list');
+		const $btnRestoreAll  = $('#btn-quarantine-restore-all');
+		const $btnPurgeAll    = $('#btn-quarantine-purge-all');
 		const $backupCheck    = $('#webp_nc_backup_check');
 
 		let isScanning = false;
 		let unusedItems = [];
+		let bulkBusy = false;
 		const quarantineBtnLabel = $btnQuarantine.text();
+		const restoreAllLabel = $btnRestoreAll.text();
+		const purgeAllLabel = $btnPurgeAll.text();
 
 		$(window).on('beforeunload', function () {
 			if (isScanning) {
@@ -126,6 +131,8 @@
 		function renderQuarantine(index) {
 			const items = index || [];
 			$quarantineList.empty();
+			$btnRestoreAll.prop('disabled', items.length === 0 || bulkBusy);
+			$btnPurgeAll.prop('disabled', items.length === 0 || bulkBusy);
 
 			if (!items.length) {
 				$quarantineList.append(
@@ -349,6 +356,89 @@
 					alert(webpNcUnused.i18n.scanError);
 					$row.find('button').prop('disabled', false);
 				});
+		});
+
+		function requireBackup() {
+			if ($backupCheck.is(':checked')) {
+				return true;
+			}
+			alert(webpNcUnused.i18n.confirmBackup);
+			$backupCheck.closest('.webp-nc-warning-card').css('box-shadow', '0 0 0 2px #ef4444');
+			setTimeout(function () {
+				$backupCheck.closest('.webp-nc-warning-card').css('box-shadow', '');
+			}, 1800);
+			return false;
+		}
+
+		function runBulk(action, confirmTemplate, busyText, $button) {
+			if (bulkBusy) {
+				return;
+			}
+
+			const count = $quarantineList.find('.webp-nc-quarantine-row').length;
+			if (!count) {
+				alert(webpNcUnused.i18n.emptyQuarantine);
+				return;
+			}
+
+			if (action === 'webp_nc_quarantine_purge_all' && !requireBackup()) {
+				return;
+			}
+
+			if (!confirm(sprintfCount(confirmTemplate, count))) {
+				return;
+			}
+
+			bulkBusy = true;
+			$btnRestoreAll.prop('disabled', true);
+			$btnPurgeAll.prop('disabled', true);
+			$button.text(busyText);
+			$quarantineList.find('button').prop('disabled', true);
+
+			post(action)
+				.done(function (response) {
+					if (!response.success) {
+						alert((response.data && response.data.message) || webpNcUnused.i18n.scanError);
+						return;
+					}
+					if (response.data.errors && response.data.errors.length) {
+						alert(response.data.errors.join('\n'));
+					}
+					renderQuarantine(response.data.index || []);
+					if (response.data.message) {
+						$statusText.text(response.data.message);
+					}
+				})
+				.fail(function () {
+					alert(webpNcUnused.i18n.scanError);
+				})
+				.always(function () {
+					bulkBusy = false;
+					$btnRestoreAll.text(restoreAllLabel);
+					$btnPurgeAll.text(purgeAllLabel);
+					const remaining = $quarantineList.find('.webp-nc-quarantine-row').length;
+					$btnRestoreAll.prop('disabled', remaining === 0);
+					$btnPurgeAll.prop('disabled', remaining === 0);
+					$quarantineList.find('button').prop('disabled', false);
+				});
+		}
+
+		$btnRestoreAll.on('click', function () {
+			runBulk(
+				'webp_nc_quarantine_restore_all',
+				webpNcUnused.i18n.confirmRestoreAll,
+				webpNcUnused.i18n.restoringAll,
+				$btnRestoreAll
+			);
+		});
+
+		$btnPurgeAll.on('click', function () {
+			runBulk(
+				'webp_nc_quarantine_purge_all',
+				webpNcUnused.i18n.confirmPurgeAll,
+				webpNcUnused.i18n.purgingAll,
+				$btnPurgeAll
+			);
 		});
 
 		renderQuarantine(webpNcUnused.quarantine || []);

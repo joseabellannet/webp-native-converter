@@ -41,6 +41,8 @@ class MediaQuarantine {
 		add_action( 'wp_ajax_webp_nc_quarantine_move', array( $this, 'ajax_move' ) );
 		add_action( 'wp_ajax_webp_nc_quarantine_restore', array( $this, 'ajax_restore' ) );
 		add_action( 'wp_ajax_webp_nc_quarantine_purge', array( $this, 'ajax_purge' ) );
+		add_action( 'wp_ajax_webp_nc_quarantine_restore_all', array( $this, 'ajax_restore_all' ) );
+		add_action( 'wp_ajax_webp_nc_quarantine_purge_all', array( $this, 'ajax_purge_all' ) );
 		add_action( 'wp_ajax_webp_nc_quarantine_list', array( $this, 'ajax_list' ) );
 
 		// WP vacía la papelera a los EMPTY_TRASH_DAYS (o de inmediato si vale 0).
@@ -180,6 +182,90 @@ class MediaQuarantine {
 				'id'      => $attachment_id,
 				'index'   => array_values( $this->get_index() ),
 				'message' => sprintf( __( 'Imagen #%d eliminada de forma permanente.', 'webp-native-converter' ), $attachment_id ),
+			)
+		);
+	}
+
+	/**
+	 * AJAX: restaura todos los adjuntos de cuarentena.
+	 */
+	public function ajax_restore_all() {
+		$this->guard_ajax();
+		$this->bump_time_limit();
+
+		$ids = $this->index_ids();
+		if ( empty( $ids ) ) {
+			wp_send_json_error( array( 'message' => __( 'La cuarentena está vacía.', 'webp-native-converter' ) ) );
+		}
+
+		$done   = 0;
+		$errors = array();
+
+		foreach ( $ids as $attachment_id ) {
+			$result = $this->restore_attachment( $attachment_id );
+			if ( is_wp_error( $result ) ) {
+				$errors[] = sprintf( '#%d: %s', $attachment_id, $result->get_error_message() );
+				continue;
+			}
+			$done++;
+		}
+
+		if ( $done > 0 ) {
+			Logger::info( sprintf( 'Cuarentena: %d adjuntos restaurados.', $done ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'done'    => $done,
+				'errors'  => $errors,
+				'index'   => array_values( $this->get_index() ),
+				'message' => sprintf(
+					/* translators: %d: number of restored images */
+					__( 'Se han restaurado %d imágenes a la biblioteca.', 'webp-native-converter' ),
+					$done
+				),
+			)
+		);
+	}
+
+	/**
+	 * AJAX: borra definitivamente todos los adjuntos de cuarentena.
+	 */
+	public function ajax_purge_all() {
+		$this->guard_ajax();
+		$this->bump_time_limit();
+
+		$ids = $this->index_ids();
+		if ( empty( $ids ) ) {
+			wp_send_json_error( array( 'message' => __( 'La cuarentena está vacía.', 'webp-native-converter' ) ) );
+		}
+
+		$done   = 0;
+		$errors = array();
+
+		foreach ( $ids as $attachment_id ) {
+			$result = $this->purge_attachment( $attachment_id );
+			if ( is_wp_error( $result ) ) {
+				$errors[] = sprintf( '#%d: %s', $attachment_id, $result->get_error_message() );
+				continue;
+			}
+			$done++;
+		}
+
+		if ( $done > 0 ) {
+			Logger::info( sprintf( 'Cuarentena: %d adjuntos eliminados de forma permanente.', $done ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'done'    => $done,
+				'errors'  => $errors,
+				'index'   => array_values( $this->get_index() ),
+				'message' => sprintf(
+					/* translators: %d: number of permanently deleted images */
+					__( 'Se han eliminado de forma permanente %d imágenes.', 'webp-native-converter' ),
+					$done
+				),
 			)
 		);
 	}
@@ -638,6 +724,25 @@ class MediaQuarantine {
 		}
 
 		return array( 'files' => $files );
+	}
+
+	/**
+	 * IDs actuales del índice, congelados para un lote.
+	 *
+	 * @return int[]
+	 */
+	protected function index_ids() {
+		$ids = array_map( 'absint', array_keys( $this->get_index() ) );
+		return array_values( array_filter( $ids ) );
+	}
+
+	/**
+	 * Un lote grande en hosting compartido se puede ir a 30s.
+	 */
+	protected function bump_time_limit() {
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 120 );
+		}
 	}
 
 	/**
