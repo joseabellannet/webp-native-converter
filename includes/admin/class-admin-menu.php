@@ -573,13 +573,18 @@ class AdminMenu {
 						</div>
 						<h4><?php esc_html_e( 'Desarrollado con cariño por', 'webp-native-converter' ); ?></h4>
 						<p class="webp-nc-author-name">Jose Antonio Abellán</p>
+						<p class="webp-nc-author-role">
+							<?php esc_html_e( 'Consultor SEO y desarrollador WordPress especializado en SEO local.', 'webp-native-converter' ); ?>
+						</p>
 						<p class="webp-nc-author-desc">
-							<?php esc_html_e( 'Plugin 100% gratuito cedido a la comunidad de WordPress. Sin modelos freemium, suscripciones ni límites mensuales.', 'webp-native-converter' ); ?>
+							<?php esc_html_e( 'Plugin 100% gratuito cedido a la comunidad de WordPress.', 'webp-native-converter' ); ?>
+							<br>
+							<?php esc_html_e( 'Sin modelos freemium, suscripciones ni límites mensuales.', 'webp-native-converter' ); ?>
 						</p>
 						<div class="webp-nc-author-links">
 							<a href="https://joseabellan.net" target="_blank" rel="noopener noreferrer" class="button button-secondary">
 								<span class="dashicons dashicons-admin-site"></span>
-								<?php esc_html_e( 'Sitio Web', 'webp-native-converter' ); ?>
+								<?php esc_html_e( 'Conoce mis servicios', 'webp-native-converter' ); ?>
 							</a>
 							<a href="https://github.com/joseabellannet" target="_blank" rel="noopener noreferrer" class="button button-secondary">
 								<span class="dashicons dashicons-external"></span>
