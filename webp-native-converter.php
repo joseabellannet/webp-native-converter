@@ -19,6 +19,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Evita un fatal si hay dos copias en /plugins/ (p.ej. la carpeta original y el ZIP de GitHub `webp-native-converter-main`).
+if ( defined( 'WEBP_NC_VERSION' ) ) {
+	return;
+}
+
 // Constantes globales del plugin. Las uso en todos los archivos para no repetir rutas a mano.
 define( 'WEBP_NC_VERSION', '1.0.0' );
 define( 'WEBP_NC_FILE', __FILE__ );
