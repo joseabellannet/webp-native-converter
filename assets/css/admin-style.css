@@ -218,23 +218,63 @@
 .webp-nc-batch-controls {
 	margin: 18px 0;
 	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
 	gap: 12px;
 }
 
-.button-hero#btn-start-batch {
-	background: var(--webp-nc-primary);
-	border-color: var(--webp-nc-primary);
-	color: #fff;
+.webp-nc-batch-controls .button {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+	line-height: 1.2;
+}
+
+.webp-nc-batch-controls .button .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+	line-height: 1;
+	margin: 0;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	top: 0;
+	vertical-align: middle;
+}
+
+.webp-nc-batch-controls .button .webp-nc-btn-label {
+	line-height: 1.2;
+}
+
+.button-hero#btn-start-batch,
+.button-hero#btn-stop-batch {
+	background: var(--webp-nc-primary);
+	border-color: var(--webp-nc-primary);
+	color: #fff;
 	font-weight: 600;
 	padding: 8px 20px;
 	height: auto;
 }
 
+.button-hero#btn-stop-batch {
+	background: #64748b;
+	border-color: #64748b;
+}
+
 .button-hero#btn-start-batch:hover {
 	background: var(--webp-nc-primary-hover);
+	border-color: var(--webp-nc-primary-hover);
+}
+
+.webp-nc-batch-preview {
+	margin: 8px 0 4px 0;
+}
+
+.webp-nc-batch-preview .webp-nc-unused-table-wrap {
+	margin-top: 8px;
 }
 
 /* Progress Bar */

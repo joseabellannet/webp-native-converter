@@ -134,8 +134,33 @@ class AdminMenu {
 					'noImagesFound'    => __( 'No se encontraron imágenes pendientes de conversión.', 'webp-native-converter' ),
 					'errorProcessing'  => __( 'Se produjeron errores durante el procesamiento.', 'webp-native-converter' ),
 					'stopping'         => __( 'Deteniendo proceso...', 'webp-native-converter' ),
+					'loadingPreview'   => __( 'Cargando listado de imágenes pendientes…', 'webp-native-converter' ),
+					'reviewReady'      => __( 'Revisa el listado, desmarca las que no quieras convertir y pulsa Convertir seleccionadas.', 'webp-native-converter' ),
+					'selectSome'       => __( 'Selecciona al menos una imagen.', 'webp-native-converter' ),
+					'previewSummary'   => __( '%1$d seleccionadas · ahorro estimado %2$s', 'webp-native-converter' ),
+					'foundPending'     => __( 'Encontradas %d imágenes pendientes.', 'webp-native-converter' ),
 					'confirmCleanup'   => __( '¿Estás seguro de que quieres borrar de forma permanente todas las imágenes JPG y PNG que ya han sido convertidas a WebP? Esta acción no se puede deshacer y los archivos se eliminarán del disco duro.', 'webp-native-converter' ),
 					'cleaning'         => __( 'Limpiando archivos...', 'webp-native-converter' ),
+					'consoleCleared'   => __( 'Consola reiniciada.', 'webp-native-converter' ),
+					'previewLoadError' => __( 'Error de conexión al cargar el listado de imágenes.', 'webp-native-converter' ),
+					'queueLoadError'   => __( 'Error de conexión al obtener la cola de imágenes. Revisa tu internet o los logs de error de PHP.', 'webp-native-converter' ),
+					'pausing'          => __( 'Pausando el procesamiento por solicitud del usuario...', 'webp-native-converter' ),
+					'reviewCancelled'  => __( 'Revisión cancelada.', 'webp-native-converter' ),
+					'pauseLabel'       => __( 'Pausar', 'webp-native-converter' ),
+					'paused'           => __( 'Proceso en pausa. Puedes reanudarlo cuando desees sin perder el progreso (si no recargas la página).', 'webp-native-converter' ),
+					'startingSelected' => __( 'Iniciando conversión de %d imágenes seleccionadas.', 'webp-native-converter' ),
+					'progressStatus'   => __( 'Procesadas %1$d de %2$d imágenes...', 'webp-native-converter' ),
+					'batchDone'        => __( 'Lote procesado: %1$d imágenes optimizadas (Ahorro: %2$s).', 'webp-native-converter' ),
+					'batchWarn'        => __( 'Advertencia: %s', 'webp-native-converter' ),
+					'batchFail'        => __( 'Fallo en el lote: %s', 'webp-native-converter' ),
+					'ajaxRetry'        => __( 'Error AJAX al procesar el lote actual. Reintentando en 2 segundos...', 'webp-native-converter' ),
+					'retry'            => __( 'Reintentar', 'webp-native-converter' ),
+					'connectionError'  => __( 'Error de conexión o fallo interno de PHP (%s). Revisa los logs.', 'webp-native-converter' ),
+					'cleanupDone'      => __( 'Completado', 'webp-native-converter' ),
+					'cleanupLabel'     => __( 'Eliminar originales conservados', 'webp-native-converter' ),
+					'freedExtra'       => __( '(Has recuperado %s)', 'webp-native-converter' ),
+					'leaveWarning'     => __( 'Tienes una conversión masiva en progreso. Si sales de esta página, el proceso se detendrá.', 'webp-native-converter' ),
+					'error'            => __( 'Error', 'webp-native-converter' ),
 				),
 			)
 		);
@@ -177,6 +202,7 @@ class AdminMenu {
 					'purgeAll'          => __( 'Eliminar todas', 'webp-native-converter' ),
 					'selectedCount'     => __( '%d seleccionadas', 'webp-native-converter' ),
 					'foundCount'        => __( '%d candidatas a no usadas', 'webp-native-converter' ),
+					'leaveScanWarning'  => __( 'Hay un escaneo de imágenes en curso. Si sales, se interrumpirá.', 'webp-native-converter' ),
 				),
 			)
 		);
@@ -192,9 +218,9 @@ class AdminMenu {
 			wp_die( esc_html__( 'Acceso denegado.', 'webp-native-converter' ) );
 		}
 
-		$quality           = isset( $_POST['quality'] ) ? min( 100, max( 1, absint( $_POST['quality'] ) ) ) : 82;
-		$convert_on_upload = ! empty( $_POST['convert_on_upload'] ) ? 1 : 0;
-		$keep_originals    = ! empty( $_POST['keep_originals'] ) ? 1 : 0;
+		$quality           = min( 100, max( 1, webp_nc_get_posted_int( 'quality', 82 ) ) );
+		$convert_on_upload = isset( $_POST['convert_on_upload'] ) ? 1 : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$keep_originals    = isset( $_POST['keep_originals'] ) ? 1 : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$settings = array(
 			'quality'           => $quality,
@@ -212,6 +238,10 @@ class AdminMenu {
 	 * Renderiza el panel de administración.
 	 */
 	public function render_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Acceso denegado.', 'webp-native-converter' ) );
+		}
+
 		$system_status = SystemCheck::get_system_status();
 		$settings      = get_option(
 			'webp_nc_settings',
@@ -249,7 +279,10 @@ class AdminMenu {
 				</p>
 			</header>
 
-			<?php if ( isset( $_GET['settings-updated'] ) ) : ?>
+			<?php
+			$settings_updated = isset( $_GET['settings-updated'] ) ? sanitize_text_field( wp_unslash( $_GET['settings-updated'] ) ) : '';
+			if ( 'true' === $settings_updated ) :
+				?>
 				<div class="notice notice-success is-dismissible">
 					<p><?php esc_html_e( 'Ajustes guardados correctamente.', 'webp-native-converter' ); ?></p>
 				</div>
@@ -324,13 +357,49 @@ class AdminMenu {
 						<div class="webp-nc-batch-controls">
 							<button type="button" class="button button-primary button-hero" id="btn-start-batch" <?php disabled( ! $system_status['can_convert'] ); ?>>
 								<span class="dashicons dashicons-controls-play"></span>
-								<?php esc_html_e( 'Comenzar Conversión por Lotes', 'webp-native-converter' ); ?>
+								<span class="webp-nc-btn-label"><?php esc_html_e( 'Comenzar Conversión por Lotes', 'webp-native-converter' ); ?></span>
 							</button>
 
 							<button type="button" class="button button-secondary button-hero" id="btn-stop-batch" style="display: none;">
 								<span class="dashicons dashicons-controls-pause"></span>
-								<?php esc_html_e( 'Pausar', 'webp-native-converter' ); ?>
+								<span class="webp-nc-btn-label"><?php esc_html_e( 'Pausar', 'webp-native-converter' ); ?></span>
 							</button>
+						</div>
+
+						<div id="batch-preview" class="webp-nc-batch-preview" style="display: none;">
+							<p class="description">
+								<?php esc_html_e( 'El ahorro es una estimación (el real se calcula al convertir). Todas vienen marcadas; desmarca las que no quieras tocar.', 'webp-native-converter' ); ?>
+							</p>
+							<div class="webp-nc-unused-toolbar">
+								<label>
+									<input type="checkbox" id="batch-select-all" checked>
+									<?php esc_html_e( 'Seleccionar todas', 'webp-native-converter' ); ?>
+								</label>
+								<span id="batch-preview-summary" class="description"></span>
+							</div>
+							<div class="webp-nc-unused-table-wrap has-results">
+								<table class="widefat striped webp-nc-unused-table" id="batch-preview-table">
+									<thead>
+										<tr>
+											<td class="check-column"><span class="screen-reader-text"><?php esc_html_e( 'Seleccionar', 'webp-native-converter' ); ?></span></td>
+											<th><?php esc_html_e( 'Imagen', 'webp-native-converter' ); ?></th>
+											<th><?php esc_html_e( 'Archivo', 'webp-native-converter' ); ?></th>
+											<th><?php esc_html_e( 'Peso actual', 'webp-native-converter' ); ?></th>
+											<th><?php esc_html_e( 'Ahorro estimado', 'webp-native-converter' ); ?></th>
+										</tr>
+									</thead>
+									<tbody></tbody>
+								</table>
+							</div>
+							<div class="webp-nc-batch-controls">
+								<button type="button" class="button button-primary" id="btn-convert-selected">
+									<span class="dashicons dashicons-yes"></span>
+									<span class="webp-nc-btn-label"><?php esc_html_e( 'Convertir seleccionadas', 'webp-native-converter' ); ?></span>
+								</button>
+								<button type="button" class="button" id="btn-cancel-preview">
+									<?php esc_html_e( 'Cancelar', 'webp-native-converter' ); ?>
+								</button>
+							</div>
 						</div>
 
 						<!-- Barra de progreso -->

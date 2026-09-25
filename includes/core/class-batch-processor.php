@@ -53,6 +53,7 @@ class BatchProcessor {
 
 		// Registro los tres endpoints AJAX (solo para usuarios logueados — wp_ajax_ sin nopriv_).
 		add_action( 'wp_ajax_webp_nc_get_pending_images', array( $this, 'ajax_get_pending_images' ) );
+		add_action( 'wp_ajax_webp_nc_get_pending_preview', array( $this, 'ajax_get_pending_preview' ) );
 		add_action( 'wp_ajax_webp_nc_process_batch', array( $this, 'ajax_process_batch' ) );
 		add_action( 'wp_ajax_webp_nc_reset_stats', array( $this, 'ajax_reset_stats' ) );
 		add_action( 'wp_ajax_webp_nc_cleanup_originals', array( $this, 'ajax_cleanup_originals' ) );
@@ -116,6 +117,164 @@ class BatchProcessor {
 	}
 
 	/**
+	 * AJAX: ficha de un lote de pendientes (miniatura, peso y ahorro estimado).
+	 * El cliente pide trozos para no timeout en bibliotecas grandes.
+	 */
+	public function ajax_get_pending_preview() {
+		check_ajax_referer( 'webp_nc_admin_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'No tienes permisos suficientes.', 'webp-native-converter' ) ),
+				403
+			);
+			wp_die();
+		}
+
+		$ids = webp_nc_get_posted_ids( 'ids' );
+
+		if ( empty( $ids ) ) {
+			wp_send_json_error( array( 'message' => __( 'No se han especificado imágenes.', 'webp-native-converter' ) ) );
+		}
+
+		if ( count( $ids ) > 60 ) {
+			$ids = array_slice( $ids, 0, 60 );
+		}
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 60 );
+		}
+
+		wp_send_json_success(
+			array(
+				'items' => $this->get_preview_items( $ids ),
+			)
+		);
+	}
+
+	/**
+	 * Datos de revisión previa para una lista de adjuntos.
+	 *
+	 * @param int[] $ids
+	 * @return array
+	 */
+	public function get_preview_items( $ids ) {
+		$upload  = wp_upload_dir();
+		$basedir = $upload['basedir'];
+		$items   = array();
+
+		foreach ( $ids as $attachment_id ) {
+			$attachment_id = absint( $attachment_id );
+			if ( ! $attachment_id ) {
+				continue;
+			}
+
+			$post          = get_post( $attachment_id );
+			$attached_file = (string) get_post_meta( $attachment_id, '_wp_attached_file', true );
+			$bytes         = $this->collect_attachment_bytes( $attachment_id, $basedir );
+			$mime          = $post ? (string) $post->post_mime_type : '';
+			$estimated     = $this->estimate_saved_bytes( $bytes, $mime );
+			$thumb         = wp_get_attachment_image_url( $attachment_id, 'thumbnail' );
+
+			$items[] = array(
+				'id'          => $attachment_id,
+				'title'       => $post ? $post->post_title : '',
+				'filename'    => $attached_file ? wp_basename( $attached_file ) : '',
+				'bytes'       => $bytes,
+				'size'        => $bytes ? size_format( $bytes ) : '—',
+				'estimated'   => $estimated,
+				'estimated_h' => $estimated ? size_format( $estimated ) : '—',
+				'thumb'       => $thumb ? $thumb : '',
+			);
+		}
+
+		return $items;
+	}
+
+	/**
+	 * Peso en disco del original + miniaturas + original_image.
+	 *
+	 * @param int    $attachment_id
+	 * @param string $basedir
+	 * @return int
+	 */
+	protected function collect_attachment_bytes( $attachment_id, $basedir ) {
+		$bytes         = 0;
+		$seen          = array();
+		$attached_file = (string) get_post_meta( $attachment_id, '_wp_attached_file', true );
+		$paths         = array();
+
+		if ( $attached_file ) {
+			$paths[] = ltrim( $attached_file, '/' );
+		}
+
+		$meta = wp_get_attachment_metadata( $attachment_id );
+		$dir  = $attached_file ? dirname( $attached_file ) : '';
+		if ( '.' === $dir ) {
+			$dir = '';
+		}
+
+		if ( ! empty( $meta['file'] ) && is_string( $meta['file'] ) ) {
+			$paths[] = ltrim( $meta['file'], '/' );
+		}
+
+		if ( ! empty( $meta['original_image'] ) && is_string( $meta['original_image'] ) ) {
+			$orig = $meta['original_image'];
+			if ( false === strpos( $orig, '/' ) && $dir ) {
+				$orig = trailingslashit( $dir ) . $orig;
+			}
+			$paths[] = ltrim( $orig, '/' );
+		}
+
+		if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+			foreach ( $meta['sizes'] as $size_info ) {
+				if ( empty( $size_info['file'] ) ) {
+					continue;
+				}
+				$file = $size_info['file'];
+				if ( false === strpos( $file, '/' ) && $dir ) {
+					$file = trailingslashit( $dir ) . $file;
+				}
+				$paths[] = ltrim( $file, '/' );
+			}
+		}
+
+		foreach ( $paths as $relative ) {
+			$full = path_join( $basedir, $relative );
+			$key  = wp_normalize_path( $full );
+			if ( isset( $seen[ $key ] ) || ! file_exists( $full ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$bytes       += (int) @filesize( $full );
+		}
+
+		return $bytes;
+	}
+
+	/**
+	 * Estimación de ahorro WebP (el valor real se calcula al convertir).
+	 *
+	 * @param int    $bytes
+	 * @param string $mime
+	 * @return int
+	 */
+	protected function estimate_saved_bytes( $bytes, $mime ) {
+		if ( $bytes < 1 ) {
+			return 0;
+		}
+
+		$settings = get_option( 'webp_nc_settings', array() );
+		$quality  = isset( $settings['quality'] ) ? absint( $settings['quality'] ) : 82;
+		$is_png   = ( false !== strpos( strtolower( (string) $mime ), 'png' ) );
+		$ratio    = $is_png ? 0.45 : 0.28;
+		$ratio   -= ( $quality - 82 ) * 0.004;
+		$ratio    = max( 0.08, min( 0.65, $ratio ) );
+
+		return (int) round( $bytes * $ratio );
+	}
+
+	/**
 	 * AJAX: convierte un lote de adjuntos enviados desde el cliente.
 	 *
 	 * Por cada adjunto:
@@ -139,8 +298,7 @@ class BatchProcessor {
 		}
 
 		// Los IDs vienen del cliente — los saneo con absint() uno a uno.
-		$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
-		$ids = array_filter( $ids ); // Eliminar posibles ceros o valores falsy.
+		$ids = webp_nc_get_posted_ids( 'ids' );
 
 		if ( empty( $ids ) ) {
 			wp_send_json_error( array( 'message' => __( 'No se han especificado imágenes para procesar.', 'webp-native-converter' ) ) );

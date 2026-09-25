@@ -79,8 +79,7 @@ class MediaQuarantine {
 	public function ajax_move() {
 		$this->guard_ajax();
 
-		$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
-		$ids = array_filter( $ids );
+		$ids = webp_nc_get_posted_ids( 'ids' );
 
 		if ( empty( $ids ) ) {
 			wp_send_json_error( array( 'message' => __( 'No se han seleccionado imágenes.', 'webp-native-converter' ) ) );
@@ -130,7 +129,7 @@ class MediaQuarantine {
 	public function ajax_restore() {
 		$this->guard_ajax();
 
-		$attachment_id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$attachment_id = webp_nc_get_posted_int( 'id' );
 		if ( ! $attachment_id ) {
 			wp_send_json_error( array( 'message' => __( 'ID de adjunto no válido.', 'webp-native-converter' ) ) );
 		}
@@ -161,7 +160,7 @@ class MediaQuarantine {
 	public function ajax_purge() {
 		$this->guard_ajax();
 
-		$attachment_id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$attachment_id = webp_nc_get_posted_int( 'id' );
 		if ( ! $attachment_id ) {
 			wp_send_json_error( array( 'message' => __( 'ID de adjunto no válido.', 'webp-native-converter' ) ) );
 		}

@@ -15,27 +15,38 @@
 		// ==========================================
 		// 1. CONVERSIÓN MASIVA POR LOTES (DASHBOARD)
 		// ==========================================
-		const $btnStart       = $('#btn-start-batch');
-		const $btnStop        = $('#btn-stop-batch');
-		const $backupCheck    = $('#webp_nc_backup_check');
-		const $progressWrap   = $('#batch-progress-wrapper');
-		const $progressBar    = $('#batch-progress-bar');
-		const $statusText     = $('#batch-status-text');
-		const $percentText    = $('#batch-percent-text');
-		const $console        = $('#batch-console');
-		const $btnClearLog    = $('#btn-clear-console');
+		const $btnStart         = $('#btn-start-batch');
+		const $btnStop          = $('#btn-stop-batch');
+		const $btnConvertSel    = $('#btn-convert-selected');
+		const $btnCancelPreview = $('#btn-cancel-preview');
+		const $backupCheck      = $('#webp_nc_backup_check');
+		const $progressWrap     = $('#batch-progress-wrapper');
+		const $progressBar      = $('#batch-progress-bar');
+		const $statusText       = $('#batch-status-text');
+		const $percentText      = $('#batch-percent-text');
+		const $console          = $('#batch-console');
+		const $btnClearLog      = $('#btn-clear-console');
+		const $preview          = $('#batch-preview');
+		const $previewTable     = $('#batch-preview-table');
+		const $previewBody      = $previewTable.find('tbody');
+		const $selectAll        = $('#batch-select-all');
+		const $previewSummary   = $('#batch-preview-summary');
 
 		let queue             = [];
+		let pendingIds        = [];
+		let previewItems      = [];
 		let totalItems        = 0;
 		let processedItems    = 0;
 		let totalSavedBytes   = 0;
 		let isRunning         = false;
-		const batchChunkSize  = 3; // Lotes de 3. Un número seguro para no dar timeouts en hostings baratos.
+		let isLoadingPreview  = false;
+		const batchChunkSize  = 3;
+		const previewChunk    = 50;
 
 		// Prevención de recarga accidental: si el proceso está corriendo, avisamos al usuario antes de salir.
 		$(window).on('beforeunload', function () {
 			if (isRunning) {
-				return "Tienes una conversión masiva en progreso. Si sales de esta página, el proceso se detendrá y la cola actual se perderá en la memoria. ¿Seguro que quieres salir?";
+				return webpNcData.i18n.leaveWarning;
 			}
 		});
 
@@ -65,32 +76,154 @@
 		if ($btnClearLog.length) {
 			$btnClearLog.on('click', function () {
 				$console.empty();
-				appendLog('Consola reiniciada.', 'muted');
+				appendLog(webpNcData.i18n.consoleCleared, 'muted');
+			});
+		}
+
+		function requireBackup() {
+			if ($backupCheck.is(':checked')) {
+				return true;
+			}
+			alert(webpNcData.i18n.confirmBackup);
+			$backupCheck.closest('.webp-nc-warning-card').css('box-shadow', '0 0 0 2px #ef4444');
+			setTimeout(function () {
+				$backupCheck.closest('.webp-nc-warning-card').css('box-shadow', '');
+			}, 2000);
+			return false;
+		}
+
+		function formatPreviewSummary(count, savedHuman) {
+			return webpNcData.i18n.previewSummary
+				.replace('%1$d', String(count))
+				.replace('%2$s', savedHuman);
+		}
+
+		function formatBytes(bytes) {
+			if (!bytes || bytes < 1) {
+				return '0 B';
+			}
+			const units = ['B', 'KB', 'MB', 'GB'];
+			let i = 0;
+			let value = bytes;
+			while (value >= 1024 && i < units.length - 1) {
+				value /= 1024;
+				i++;
+			}
+			return (i === 0 ? String(value) : value.toFixed(1)) + ' ' + units[i];
+		}
+
+		function updatePreviewSelection() {
+			const $checks = $previewBody.find('.batch-check');
+			const $checked = $checks.filter(':checked');
+			let estimated = 0;
+			$checked.each(function () {
+				estimated += parseInt($(this).data('estimated'), 10) || 0;
+			});
+			$previewSummary.text(formatPreviewSummary($checked.length, formatBytes(estimated)));
+			$selectAll.prop('checked', $checks.length > 0 && $checked.length === $checks.length);
+			$btnConvertSel.prop('disabled', $checked.length === 0 || isRunning);
+		}
+
+		function renderPreview(items) {
+			previewItems = items || [];
+			$previewBody.empty();
+
+			previewItems.forEach(function (item) {
+				const thumb = item.thumb
+					? $('<img>', { src: item.thumb, alt: '', class: 'webp-nc-unused-thumb' })
+					: $('<span>', { class: 'webp-nc-unused-thumb webp-nc-unused-thumb-empty dashicons dashicons-format-image' });
+
+				const $check = $('<input>', {
+					type: 'checkbox',
+					class: 'batch-check',
+					value: item.id,
+					checked: true
+				}).attr('data-estimated', item.estimated || 0);
+
+				const $tr = $('<tr>');
+				$tr.append($('<th>', { class: 'check-column' }).append($check));
+				$tr.append($('<td>').append(thumb).append($('<strong>').text(item.title || item.filename || ('#' + item.id))));
+				$tr.append($('<td>').append($('<code>').text(item.filename || '')));
+				$tr.append($('<td>').text(item.size || '—'));
+				$tr.append($('<td>').text(item.estimated_h || '—'));
+				$previewBody.append($tr);
+			});
+
+			$selectAll.prop('checked', previewItems.length > 0);
+			$preview.show();
+			updatePreviewSelection();
+		}
+
+		function resetPreviewUi() {
+			isLoadingPreview = false;
+			$preview.hide();
+			$previewBody.empty();
+			previewItems = [];
+			pendingIds = [];
+			$btnStart.prop('disabled', false).show();
+			$btnConvertSel.prop('disabled', false);
+		}
+
+		function fetchPreviewChunk(offset) {
+			const chunk = pendingIds.slice(offset, offset + previewChunk);
+			if (!chunk.length) {
+				isLoadingPreview = false;
+				$progressWrap.hide();
+				renderPreview(previewItems);
+				appendLog(webpNcData.i18n.reviewReady, 'normal');
+				$statusText.text(webpNcData.i18n.reviewReady);
+				return;
+			}
+
+			const loaded = Math.min(offset + chunk.length, pendingIds.length);
+			const percent = Math.round((loaded / pendingIds.length) * 100);
+			$progressBar.css('width', percent + '%');
+			$percentText.text(percent + '%');
+			$statusText.text(webpNcData.i18n.loadingPreview + ' ' + loaded + '/' + pendingIds.length);
+
+			$.ajax({
+				url: webpNcData.ajaxUrl,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					action: 'webp_nc_get_pending_preview',
+					nonce: webpNcData.nonce,
+					ids: chunk
+				},
+				success: function (response) {
+					if (response.success && response.data.items) {
+						previewItems = previewItems.concat(response.data.items);
+					}
+					fetchPreviewChunk(offset + chunk.length);
+				},
+				error: function () {
+					isLoadingPreview = false;
+					$btnStart.prop('disabled', false).show();
+					appendLog(webpNcData.i18n.previewLoadError, 'error');
+				}
 			});
 		}
 
 		if ($btnStart.length) {
 			$btnStart.on('click', function () {
-				// Cuidado aquí: fuerzo a que marquen el checkbox de copia de seguridad.
-				// Si no lo marcan, les pongo el recuadro en rojo unos segundos.
-				if (!$backupCheck.is(':checked')) {
-					alert(webpNcData.i18n.confirmBackup);
-					$backupCheck.closest('.webp-nc-warning-card').css('box-shadow', '0 0 0 2px #ef4444');
-					setTimeout(function () {
-						$backupCheck.closest('.webp-nc-warning-card').css('box-shadow', '');
-					}, 2000);
+				if (isLoadingPreview || isRunning) {
 					return;
 				}
 
-				isRunning = true;
-				$btnStart.hide();
-				$btnStop.show();
+				if (!requireBackup()) {
+					return;
+				}
+
+				isLoadingPreview = true;
+				previewItems = [];
+				$preview.hide();
+				$btnStart.prop('disabled', true);
 				$progressWrap.slideDown(200);
+				$progressBar.css('width', '4%');
+				$percentText.text('0%');
+				$statusText.text(webpNcData.i18n.loadingPreview);
+				appendLog(webpNcData.i18n.loadingPreview, 'normal');
 
-				appendLog('Consultando imágenes pendientes en la base de datos...', 'normal');
-				$statusText.text(webpNcData.i18n.processing);
-
-				// Petición inicial: le pedimos a PHP que nos dé TODOS los IDs pendientes.
 				$.ajax({
 					url: webpNcData.ajaxUrl,
 					type: 'POST',
@@ -100,46 +233,92 @@
 						nonce: webpNcData.nonce
 					},
 					success: function (response) {
-						if (response.success && response.data.ids.length > 0) {
-							// Guardamos la cola en memoria para empezar a consumirla
-							queue          = response.data.ids;
-							totalItems     = queue.length;
-							processedItems = 0;
-
-							appendLog(`Encontradas ${totalItems} imágenes para procesar.`, 'normal');
-							processNextBatch();
+						if (response.success && response.data.ids && response.data.ids.length > 0) {
+							pendingIds = response.data.ids;
+							appendLog(webpNcData.i18n.foundPending.replace('%d', String(pendingIds.length)), 'normal');
+							fetchPreviewChunk(0);
 						} else {
-							// Todo estaba al día.
-							isRunning = false;
-							$btnStart.show();
-							$btnStop.hide();
+							isLoadingPreview = false;
+							$btnStart.prop('disabled', false);
 							$statusText.text(webpNcData.i18n.noImagesFound);
 							appendLog(webpNcData.i18n.noImagesFound, 'muted');
 						}
 					},
 					error: function () {
-						isRunning = false;
-						$btnStart.show();
-						$btnStop.hide();
-						appendLog('Error de conexión al obtener la cola de imágenes. Revisa tu internet o los logs de error de PHP.', 'error');
+						isLoadingPreview = false;
+						$btnStart.prop('disabled', false);
+						appendLog(webpNcData.i18n.queueLoadError, 'error');
 					}
 				});
 			});
 
 			$btnStop.on('click', function () {
 				isRunning = false;
-				$btnStop.text(webpNcData.i18n.stopping).prop('disabled', true);
-				appendLog('Pausando el procesamiento por solicitud del usuario...', 'muted');
+				$btnStop.find('.webp-nc-btn-label').text(webpNcData.i18n.stopping);
+				$btnStop.prop('disabled', true);
+				appendLog(webpNcData.i18n.pausing, 'muted');
 			});
 		}
+
+		$selectAll.on('change', function () {
+			$previewBody.find('.batch-check').prop('checked', $selectAll.is(':checked'));
+			updatePreviewSelection();
+		});
+
+		$previewBody.on('change', '.batch-check', updatePreviewSelection);
+
+		$btnCancelPreview.on('click', function () {
+			if (isRunning) {
+				return;
+			}
+			resetPreviewUi();
+			appendLog(webpNcData.i18n.reviewCancelled, 'muted');
+		});
+
+		$btnConvertSel.on('click', function () {
+			if (isRunning || isLoadingPreview) {
+				return;
+			}
+
+			if (!requireBackup()) {
+				return;
+			}
+
+			const selected = $previewBody.find('.batch-check:checked').map(function () {
+				return parseInt(this.value, 10);
+			}).get();
+
+			if (!selected.length) {
+				alert(webpNcData.i18n.selectSome);
+				return;
+			}
+
+			queue          = selected.slice();
+			totalItems     = queue.length;
+			processedItems = 0;
+			totalSavedBytes = 0;
+			isRunning      = true;
+
+			$preview.hide();
+			$btnStart.hide();
+			$btnStop.show().prop('disabled', false);
+			$btnStop.find('.webp-nc-btn-label').text(webpNcData.i18n.pauseLabel);
+			$progressWrap.slideDown(200);
+			$progressBar.css('width', '0%');
+			$percentText.text('0%');
+			$statusText.text(webpNcData.i18n.processing);
+			appendLog(webpNcData.i18n.startingSelected.replace('%d', String(totalItems)), 'normal');
+			processNextBatch();
+		});
 
 		// El motor de recursividad que va vaciando la cola.
 		function processNextBatch() {
 			if (!isRunning) {
 				// Si pausaron el proceso de forma explícita.
-				$btnStop.text('Pausar').prop('disabled', false).hide();
+				$btnStop.find('.webp-nc-btn-label').text(webpNcData.i18n.pauseLabel);
+				$btnStop.prop('disabled', false).hide();
 				$btnStart.show();
-				appendLog('Proceso en pausa. Puedes reanudarlo cuando desees sin perder el progreso (si no recargas la página).', 'muted');
+				appendLog(webpNcData.i18n.paused, 'muted');
 				return;
 			}
 
@@ -178,14 +357,22 @@
 						const percent = Math.min(100, Math.round((processedItems / totalItems) * 100));
 						$progressBar.css('width', percent + '%');
 						$percentText.text(percent + '%');
-						$statusText.text(`Procesadas ${processedItems} de ${totalItems} imágenes...`);
+						$statusText.text(
+							webpNcData.i18n.progressStatus
+								.replace('%1$d', String(processedItems))
+								.replace('%2$d', String(totalItems))
+						);
 
-						appendLog(`Lote procesado: ${response.data.processed} imágenes optimizadas (Ahorro: ${response.data.saved_human}).`, 'success');
+						appendLog(
+							webpNcData.i18n.batchDone
+								.replace('%1$d', String(response.data.processed))
+								.replace('%2$s', response.data.saved_human),
+							'success'
+						);
 
-						// Si el servidor encontró cosas raras pero no palmó (ej: faltaban los thumbnails), nos lo dice.
 						if (response.data.errors && response.data.errors.length > 0) {
 							response.data.errors.forEach(function (err) {
-								appendLog(`Advertencia: ${err}`, 'error');
+								appendLog(webpNcData.i18n.batchWarn.replace('%s', err), 'error');
 							});
 						}
 
@@ -196,14 +383,14 @@
 						processNextBatch();
 					} else {
 						// Falló la conversión de este lote, pero seguimos con el resto.
-						appendLog(`Fallo en el lote: ${response.data.message}`, 'error');
+						appendLog(webpNcData.i18n.batchFail.replace('%s', response.data.message), 'error');
 						processNextBatch();
 					}
 				},
 				error: function () {
 					// Fallo a nivel de conexión o timeout de PHP 504/500. 
 					// Nos esperamos 2 segundos y volvemos a intentarlo en lugar de abortar de golpe.
-					appendLog('Error AJAX al procesar el lote actual. Reintentando en 2 segundos...', 'error');
+					appendLog(webpNcData.i18n.ajaxRetry, 'error');
 					setTimeout(processNextBatch, 2000);
 				}
 			});
@@ -245,13 +432,13 @@
 						`);
 					} else {
 						// Si algo falla, dejamos el botón habilitado por si quieren reintentar.
-						$btn.prop('disabled', false).text('Reintentar');
+						$btn.prop('disabled', false).text(webpNcData.i18n.retry);
 						alert(response.data.message || webpNcData.i18n.error);
 					}
 				},
 				error: function (xhr) {
-					$btn.prop('disabled', false).text('Reintentar');
-					alert('Error de conexión o fallo interno de PHP (' + xhr.status + '). Revisa los logs.');
+					$btn.prop('disabled', false).text(webpNcData.i18n.retry);
+					alert(webpNcData.i18n.connectionError.replace('%s', String(xhr.status)));
 				}
 			});
 		});
@@ -281,18 +468,18 @@
 					},
 					success: function (response) {
 						if (response.success) {
-							$btnCleanup.text('Completado');
+							$btnCleanup.text(webpNcData.i18n.cleanupDone);
 							$cleanupStatus.css('color', '#135e96').text(
-								response.data.message + (response.data.freed_bytes > 0 ? ` (Has recuperado ${response.data.freed_human})` : '')
+								response.data.message + (response.data.freed_bytes > 0 ? ' ' + webpNcData.i18n.freedExtra.replace('%s', response.data.freed_human) : '')
 							);
 						} else {
-							$btnCleanup.prop('disabled', false).text('Eliminar originales conservados');
+							$btnCleanup.prop('disabled', false).text(webpNcData.i18n.cleanupLabel);
 							$cleanupStatus.css('color', '#d63638').text(response.data.message || webpNcData.i18n.error);
 						}
 					},
 					error: function (xhr) {
-						$btnCleanup.prop('disabled', false).text('Eliminar originales conservados');
-						$cleanupStatus.css('color', '#d63638').text('Error AJAX (' + xhr.status + '). Revisa la consola o los logs.');
+						$btnCleanup.prop('disabled', false).text(webpNcData.i18n.cleanupLabel);
+						$cleanupStatus.css('color', '#d63638').text(webpNcData.i18n.connectionError.replace('%s', String(xhr.status)));
 					}
 				});
 			});

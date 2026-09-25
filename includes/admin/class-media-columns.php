@@ -65,9 +65,11 @@ class MediaColumns {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'webp_nc_admin_nonce' ),
 				'i18n'    => array(
-					'processing' => __( 'Convirtiendo...', 'webp-native-converter' ),
-					'success'    => __( '¡Convertido!', 'webp-native-converter' ),
-					'error'      => __( 'Error', 'webp-native-converter' ),
+					'processing'      => __( 'Convirtiendo...', 'webp-native-converter' ),
+					'success'         => __( '¡Convertido!', 'webp-native-converter' ),
+					'error'           => __( 'Error', 'webp-native-converter' ),
+					'retry'           => __( 'Reintentar', 'webp-native-converter' ),
+					'connectionError' => __( 'Error de conexión o fallo interno de PHP (%s). Revisa los logs.', 'webp-native-converter' ),
 				),
 			)
 		);
@@ -127,8 +129,8 @@ class MediaColumns {
 			echo '</div>';
 
 			printf(
-				'<button type="button" class="button button-small webp-nc-quick-convert" data-id="%d">%s</button>',
-				absint( $attachment_id ),
+				'<button type="button" class="button button-small webp-nc-quick-convert" data-id="%s">%s</button>',
+				esc_attr( (string) absint( $attachment_id ) ),
 				esc_html__( 'Convertir a WebP', 'webp-native-converter' )
 			);
 		}
@@ -149,7 +151,7 @@ class MediaColumns {
 			wp_die(); // Garantiza que la ejecución para aquí en cualquier versión de WP.
 		}
 
-		$attachment_id = isset( $_POST['attachment_id'] ) ? absint( $_POST['attachment_id'] ) : 0;
+		$attachment_id = webp_nc_get_posted_int( 'attachment_id' );
 		if ( ! $attachment_id ) {
 			wp_send_json_error( array( 'message' => __( 'ID de imagen inválido.', 'webp-native-converter' ) ) );
 			wp_die();

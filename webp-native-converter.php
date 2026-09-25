@@ -3,7 +3,7 @@
  * Plugin Name:       WebP Native Converter
  * Plugin URI:        https://github.com/joseabellannet/webp-native-converter
  * Description:       Conversión nativa, local e ilimitada de imágenes (JPG, JPEG, PNG) a formato WebP directamente en el servidor con actualización segura en la base de datos.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jose Antonio Abellán
@@ -25,11 +25,41 @@ if ( defined( 'WEBP_NC_VERSION' ) ) {
 }
 
 // Constantes globales del plugin. Las uso en todos los archivos para no repetir rutas a mano.
-define( 'WEBP_NC_VERSION', '1.0.1' );
+define( 'WEBP_NC_VERSION', '1.0.2' );
 define( 'WEBP_NC_FILE', __FILE__ );
 define( 'WEBP_NC_PATH', plugin_dir_path( __FILE__ ) ); // Ruta absoluta en disco, con trailing slash.
 define( 'WEBP_NC_URL', plugin_dir_url( __FILE__ ) );   // URL pública para assets CSS/JS.
 define( 'WEBP_NC_BASENAME', plugin_basename( __FILE__ ) ); // Necesario para el enlace "Ajustes" en la lista de plugins.
+
+/**
+ * IDs enteros enviados por POST (tras nonce en el caller).
+ *
+ * @param string $key Clave de $_POST.
+ * @return int[]
+ */
+function webp_nc_get_posted_ids( $key ) {
+	if ( ! isset( $_POST[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		return array();
+	}
+
+	$raw = wp_unslash( $_POST[ $key ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+	return array_values( array_filter( array_map( 'absint', (array) $raw ) ) );
+}
+
+/**
+ * Entero enviado por POST (tras nonce en el caller).
+ *
+ * @param string $key     Clave de $_POST.
+ * @param int    $default
+ * @return int
+ */
+function webp_nc_get_posted_int( $key, $default = 0 ) {
+	if ( ! isset( $_POST[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		return absint( $default );
+	}
+
+	return absint( wp_unslash( $_POST[ $key ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+}
 
 /**
  * Carga el autoloader PSR-4 que mapea clases a archivos automáticamente.

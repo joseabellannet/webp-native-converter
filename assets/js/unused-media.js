@@ -41,7 +41,7 @@
 
 		$(window).on('beforeunload', function () {
 			if (isScanning) {
-				return 'Hay un escaneo de imágenes en curso. Si sales, se interrumpirá.';
+				return webpNcUnused.i18n.leaveScanWarning;
 			}
 		});
 
