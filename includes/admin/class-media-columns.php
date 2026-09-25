@@ -12,6 +12,7 @@ namespace WebPNativeConverter\Admin;
 
 use WebPNativeConverter\Core\Converter;
 use WebPNativeConverter\Core\DbReplacer;
+use WebPNativeConverter\Utils\SystemCheck;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -97,17 +98,28 @@ class MediaColumns {
 			return;
 		}
 
-		$mime = get_post_mime_type( $attachment_id );
-		$is_image = in_array( $mime, array( 'image/jpeg', 'image/jpg', 'image/png', 'image/webp' ), true );
+		$mime     = strtolower( (string) get_post_mime_type( $attachment_id ) );
+		$is_image = in_array( $mime, array( 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/x-webp' ), true );
 
 		if ( ! $is_image ) {
 			echo '<span class="text-muted">—</span>';
 			return;
 		}
 
-		$is_converted = get_post_meta( $attachment_id, '_webp_nc_converted', true );
+		$is_converted = (bool) get_post_meta( $attachment_id, '_webp_nc_converted', true );
+		$already_webp = SystemCheck::attachment_is_webp( $attachment_id );
 
-		if ( $is_converted || 'image/webp' === $mime ) {
+		if ( $already_webp && ! $is_converted ) {
+			echo '<div class="webp-nc-col-badge webp-nc-badge-success">';
+			echo '<span class="dashicons dashicons-yes"></span> <strong>WebP</strong>';
+			echo '</div>';
+			echo '<div class="webp-nc-col-details">';
+			echo '<small>' . esc_html__( 'Ya era WebP (subida nativa).', 'webp-native-converter' ) . '</small>';
+			echo '</div>';
+			return;
+		}
+
+		if ( $is_converted || $already_webp ) {
 			$orig_size  = absint( get_post_meta( $attachment_id, '_webp_nc_original_size', true ) );
 			$webp_size  = absint( get_post_meta( $attachment_id, '_webp_nc_webp_size', true ) );
 			$saved_byte = absint( get_post_meta( $attachment_id, '_webp_nc_saved_bytes', true ) );
@@ -154,6 +166,11 @@ class MediaColumns {
 		$attachment_id = webp_nc_get_posted_int( 'attachment_id' );
 		if ( ! $attachment_id ) {
 			wp_send_json_error( array( 'message' => __( 'ID de imagen inválido.', 'webp-native-converter' ) ) );
+			wp_die();
+		}
+
+		if ( SystemCheck::attachment_is_webp( $attachment_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Esta imagen ya es WebP.', 'webp-native-converter' ) ) );
 			wp_die();
 		}
 

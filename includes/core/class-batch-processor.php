@@ -16,6 +16,7 @@
 namespace WebPNativeConverter\Core;
 
 use WebPNativeConverter\Utils\Logger;
+use WebPNativeConverter\Utils\SystemCheck;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -74,23 +75,38 @@ class BatchProcessor {
 
 		// Esta query busca adjuntos cuyo meta '_webp_nc_converted' no existe o no es '1'.
 		// LEFT JOIN es más eficiente que NOT EXISTS o NOT IN para esta casuística.
-		$results = $wpdb->get_col(
+		$like_webp = '%' . $wpdb->esc_like( '.webp' );
+		$results   = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT p.ID
 				FROM {$wpdb->posts} p
 				LEFT JOIN {$wpdb->postmeta} pm
 					ON ( p.ID = pm.post_id AND pm.meta_key = %s )
+				LEFT JOIN {$wpdb->postmeta} pf
+					ON ( p.ID = pf.post_id AND pf.meta_key = %s )
 				WHERE p.post_type = 'attachment'
 				  AND p.post_status = 'inherit'
 				  AND p.post_mime_type IN ( 'image/jpeg', 'image/jpg', 'image/png' )
 				  AND ( pm.meta_value IS NULL OR pm.meta_value != '1' )
+				  AND ( pf.meta_value IS NULL OR LOWER( pf.meta_value ) NOT LIKE %s )
 				ORDER BY p.ID DESC",
-				'_webp_nc_converted'
+				'_webp_nc_converted',
+				'_wp_attached_file',
+				$like_webp
 			)
 		);
 
-		// absint() garantiza que solo hay enteros positivos en el array devuelto.
-		return array_map( 'absint', (array) $results );
+		$ids = array_map( 'absint', (array) $results );
+
+		// Por si el mime dice JPEG/PNG pero el archivo o los metadatos ya son WebP.
+		return array_values(
+			array_filter(
+				$ids,
+				static function ( $attachment_id ) {
+					return $attachment_id && ! SystemCheck::attachment_is_webp( $attachment_id );
+				}
+			)
+		);
 	}
 
 	/**
@@ -165,7 +181,7 @@ class BatchProcessor {
 
 		foreach ( $ids as $attachment_id ) {
 			$attachment_id = absint( $attachment_id );
-			if ( ! $attachment_id ) {
+			if ( ! $attachment_id || SystemCheck::attachment_is_webp( $attachment_id ) ) {
 				continue;
 			}
 
@@ -314,6 +330,10 @@ class BatchProcessor {
 		$errors            = array();
 
 		foreach ( $ids as $attachment_id ) {
+			if ( SystemCheck::attachment_is_webp( $attachment_id ) ) {
+				continue;
+			}
+
 			$attached_file = get_post_meta( $attachment_id, '_wp_attached_file', true );
 
 			// Si el adjunto no tiene ruta en la BD, algo está muy mal con este registro — lo salto.

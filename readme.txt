@@ -3,7 +3,7 @@ Contributors: joseabellan84
 Tags: webp, images, optimize, performance, converter
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -55,6 +55,9 @@ No. Si hay duda, la imagen se considera usada. No detecta sliders propios, JS de
 Actualiza URLs en contenido y metadatos, incluidas cadenas serializadas. Revisa siempre un producto o página de prueba después de convertir.
 
 == Changelog ==
+
+= 1.0.3 =
+* Las imágenes que ya son WebP (subida nativa) no aparecen como pendientes ni en el lote.
 
 = 1.0.2 =
 * Listado previo de imágenes a convertir, con ahorro estimado y selección.

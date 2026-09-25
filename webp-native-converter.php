@@ -3,7 +3,7 @@
  * Plugin Name:       WebP Native Converter
  * Plugin URI:        https://github.com/joseabellannet/webp-native-converter
  * Description:       Conversión nativa, local e ilimitada de imágenes (JPG, JPEG, PNG) a formato WebP directamente en el servidor con actualización segura en la base de datos.
- * Version:           1.0.2
+ * Version:           1.0.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Jose Antonio Abellán
@@ -25,7 +25,7 @@ if ( defined( 'WEBP_NC_VERSION' ) ) {
 }
 
 // Constantes globales del plugin. Las uso en todos los archivos para no repetir rutas a mano.
-define( 'WEBP_NC_VERSION', '1.0.2' );
+define( 'WEBP_NC_VERSION', '1.0.3' );
 define( 'WEBP_NC_FILE', __FILE__ );
 define( 'WEBP_NC_PATH', plugin_dir_path( __FILE__ ) ); // Ruta absoluta en disco, con trailing slash.
 define( 'WEBP_NC_URL', plugin_dir_url( __FILE__ ) );   // URL pública para assets CSS/JS.

@@ -12,6 +12,7 @@
 namespace WebPNativeConverter\Core;
 
 use WebPNativeConverter\Utils\Logger;
+use WebPNativeConverter\Utils\SystemCheck;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -67,7 +68,11 @@ class MediaUpload {
 			return $metadata;
 		}
 
-		// Solo procesamos JPG y PNG — ignoramos SVG, GIF, MP4, PDF y cualquier otra cosa.
+		// Solo procesamos JPG y PNG — ignoramos WebP nativo, SVG, GIF y el resto.
+		if ( SystemCheck::attachment_is_webp( $attachment_id ) ) {
+			return $metadata;
+		}
+
 		$mime          = get_post_mime_type( $attachment_id );
 		$allowed_mimes = array( 'image/jpeg', 'image/jpg', 'image/png' );
 

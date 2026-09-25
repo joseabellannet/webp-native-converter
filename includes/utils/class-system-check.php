@@ -111,6 +111,45 @@ class SystemCheck {
 	}
 
 	/**
+	 * ¿Este adjunto ya es WebP (mime, ruta o metadatos)?
+	 * WordPress a veces guarda mime image/jpeg aunque el archivo sea .webp.
+	 *
+	 * @param int $attachment_id
+	 * @return bool
+	 */
+	public static function attachment_is_webp( $attachment_id ) {
+		$attachment_id = absint( $attachment_id );
+		if ( ! $attachment_id ) {
+			return false;
+		}
+
+		$mime = strtolower( (string) get_post_mime_type( $attachment_id ) );
+		if ( in_array( $mime, array( 'image/webp', 'image/x-webp' ), true ) ) {
+			return true;
+		}
+
+		$file = (string) get_post_meta( $attachment_id, '_wp_attached_file', true );
+		if ( self::path_is_webp( $file ) ) {
+			return true;
+		}
+
+		$meta = wp_get_attachment_metadata( $attachment_id );
+		if ( ! empty( $meta['file'] ) && self::path_is_webp( $meta['file'] ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @param string $path
+	 * @return bool
+	 */
+	public static function path_is_webp( $path ) {
+		return (bool) preg_match( '/\.webp$/i', (string) $path );
+	}
+
+	/**
 	 * Genera el informe completo del estado del sistema.
 	 * Lo uso en el panel de administración y también para decidir si habilito el botón de conversión.
 	 *

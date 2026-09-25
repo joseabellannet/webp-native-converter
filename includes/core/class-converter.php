@@ -108,6 +108,11 @@ class Converter {
 			return $result;
 		}
 
+		if ( SystemCheck::path_is_webp( $source_path ) ) {
+			$result['error'] = __( 'El archivo ya es WebP; no hace falta convertirlo.', 'webp-native-converter' );
+			return $result;
+		}
+
 		$original_size           = @filesize( $source_path );
 		$result['original_size'] = $original_size;
 
